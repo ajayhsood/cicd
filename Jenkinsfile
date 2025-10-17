@@ -11,8 +11,7 @@ environment {
      stages {
          stage('Clone Repo'){
 	      steps {
-		   git branch: 'main', url: https://github.com/ajayhsood/cicd.git
-
+		   git branch: 'main', url: 'https://github.com/ajayhsood/cicd.git'
 		}
 	}
 }
