@@ -14,6 +14,18 @@ pipeline {
                 git branch: 'main', url: 'https://github.com/ajayhsood/cicd.git'
             }
         }
+        stage('Verify SSH Connection to EC2') {
+           steps {
+                echo "Verifying SSH connection to AWS EC2..."
+                sshagent(['ec2-key']) {
+                    sh '''
+                    ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST "echo ✅ SSH connection successful on $(hostname)"
+                    '''
+                }
+            }
+        }
+    }
+}
 
         stage('Build Docker Image') {
             steps {
