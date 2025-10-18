@@ -45,7 +45,7 @@ environment {
 			  steps {
 			 emailext (
 			   subject: "NestJS APP Deployed Successfully on EC2!",
-					   body: "Your NestJS app is deployed!",
+					   body: "Your NestJS app is deployed pls check!",
 			   to: "${EMAIL}"
 			 )
 			 }
