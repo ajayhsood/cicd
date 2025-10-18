@@ -6,16 +6,20 @@ pipeline {
         IMAGE_NAME = "nestjs-image"
         EMAIL = "ajay.sood9@gmail.com"
         PORT = "3000"
+        EC2_USER = "ec2-user"      // add your EC2 username
+        EC2_HOST = "3.84.8.158"   // replace with EC2 public IP or DNS
     }
 
     stages {
         stage('Clone Repository') {
             steps {
+                echo "Cloning GitHub repository..."
                 git branch: 'main', url: 'https://github.com/ajayhsood/cicd.git'
             }
         }
+
         stage('Verify SSH Connection to EC2') {
-           steps {
+            steps {
                 echo "Verifying SSH connection to AWS EC2..."
                 sshagent(['ec2-key']) {
                     sh '''
@@ -24,17 +28,17 @@ pipeline {
                 }
             }
         }
-    }
-}
 
         stage('Build Docker Image') {
             steps {
+                echo "Building Docker image..."
                 sh "docker build -t $IMAGE_NAME ."
             }
         }
 
         stage('Stop & Remove Previous Container') {
             steps {
+                echo "Stopping and removing existing container (if any)..."
                 sh '''
                     docker stop $CONTAINER_NAME || true
                     docker rm $CONTAINER_NAME || true
@@ -44,6 +48,7 @@ pipeline {
 
         stage('Run Docker Container') {
             steps {
+                echo "Running new Docker container..."
                 sh '''
                     docker run -d -p ${PORT}:${PORT} --name $CONTAINER_NAME $IMAGE_NAME
                 '''
@@ -52,8 +57,8 @@ pipeline {
 
         stage('Health Check') {
             steps {
+                echo "Checking container status..."
                 sh '''
-                    echo "Checking container status..."
                     docker ps | grep $CONTAINER_NAME
                 '''
             }
@@ -61,6 +66,7 @@ pipeline {
 
         stage('Send Email Notification') {
             steps {
+                echo "Sending deployment success email..."
                 emailext(
                     subject: "✅ NestJS App Deployed Successfully on EC2",
                     body: """
