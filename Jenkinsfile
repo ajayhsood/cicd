@@ -6,8 +6,8 @@ pipeline {
         IMAGE_NAME = "nestjs-image"
         EMAIL = "ajay.sood9@gmail.com"
         PORT = "3000"
-        EC2_USER = "ec2-user"      // add your EC2 username
-        EC2_HOST = "3.84.8.158"   // replace with EC2 public IP or DNS
+        EC2_USER = "ec2-user"
+        EC2_HOST = "44.208.22.76"
     }
 
     stages {
@@ -29,38 +29,38 @@ pipeline {
             }
         }
 
-        stage('Build Docker Image') {
+        stage('Build & Deploy on EC2') {
             steps {
-                echo "Building Docker image..."
-                sh "docker build -t $IMAGE_NAME ."
-            }
-        }
-
-        stage('Stop & Remove Previous Container') {
-            steps {
-                echo "Stopping and removing existing container (if any)..."
-                sh '''
-                    docker stop $CONTAINER_NAME || true
-                    docker rm $CONTAINER_NAME || true
-                '''
-            }
-        }
-
-        stage('Run Docker Container') {
-            steps {
-                echo "Running new Docker container..."
-                sh '''
-                    docker run -d -p ${PORT}:${PORT} --name $CONTAINER_NAME $IMAGE_NAME
-                '''
+                echo "Building Docker image and deploying on EC2..."
+                sshagent(['ec2-key']) {
+                    sh '''
+                    ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST "
+                        cd /home/$EC2_USER || exit 1
+                        rm -rf cicd && git clone https://github.com/ajayhsood/cicd.git
+                        cd cicd
+                        echo 🔨 Building Docker image...
+                        docker build -t $IMAGE_NAME .
+                        echo 🧹 Cleaning up old container...
+                        docker stop $CONTAINER_NAME || true
+                        docker rm $CONTAINER_NAME || true
+                        echo 🚀 Running new container...
+                        docker run -d -p ${PORT}:${PORT} --name $CONTAINER_NAME $IMAGE_NAME
+                    "
+                    '''
+                }
             }
         }
 
         stage('Health Check') {
             steps {
-                echo "Checking container status..."
-                sh '''
-                    docker ps | grep $CONTAINER_NAME
-                '''
+                echo "Checking container status on EC2..."
+                sshagent(['ec2-key']) {
+                    sh '''
+                    ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST "
+                        docker ps | grep $CONTAINER_NAME
+                    "
+                    '''
+                }
             }
         }
 
@@ -74,7 +74,7 @@ pipeline {
                     <p>Your NestJS application has been deployed successfully.</p>
                     <p><b>Container:</b> ${CONTAINER_NAME}</p>
                     <p><b>Port:</b> ${PORT}</p>
-                    <p><b>Deployed on:</b> AWS EC2</p>
+                    <p><b>Deployed on:</b> ${EC2_HOST}</p>
                     """,
                     mimeType: 'text/html',
                     to: "${EMAIL}"
