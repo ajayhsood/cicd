@@ -1,4 +1,4 @@
-# Use Node.js LTS image
+## Use Node.js LTS image
 FROM node:18-alpine
 
 # Create app directory
